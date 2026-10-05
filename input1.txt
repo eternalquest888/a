@@ -1,0 +1,699 @@
+//LEX
+
+
+=ABC
+
+CODE:-
+%{
+#include <stdio.h>
+%}
+%%
+abc {printf("ABC");}
+.* ;
+%%
+int yywrap()
+{
+	return 1;
+}
+int main()
+{
+	yylex();
+	return 0;
+}
+
+
+=VOWEL
+
+
+CODE:-
+%{
+#include <stdio.h>
+int vowel=0,cons=0;
+%}
+%%
+[aeiouAEIOU] {vowel++;}
+[bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ] {cons++;}
+.|\n { }
+%%
+int yywrap()
+{
+	return 1;
+}
+extern FILE *yyin;
+int main()
+{
+	yyin = fopen("input.txt", "r");
+	if (yyin == NULL)
+	{
+		printf("File not found!\n");
+		return 1;
+	}
+	yylex();
+	printf("Vowels = %d\n", vowel);
+	printf("Consonants = %d\n", cons);
+	fclose(yyin);
+	return 0;
+}
+
+
+=COUNT
+
+
+%{
+#include <stdio.h>
+int countline = 0, countword = 0, countchar = 0, countspace = 0;
+%}
+%%
+[A-Za-z]+ {
+	countword++;
+	countchar += yyleng;
+}
+\n {
+	countline++;
+}
+
+[ \t] {
+	countspace++;
+}
+. {
+	countchar++;
+}
+%%
+int main() {
+	char name[30];
+	printf("enter the sample file name:");
+	scanf("%s",name);
+	FILE *fp = fopen(name, "r");
+
+	yyin = fp;
+	yylex();
+	fclose(fp);
+
+
+	printf("count_char = %d\n", countchar);
+	printf("count_word = %d\n", countword);
+	printf("count_line = %d\n", countline);
+	printf("count_space = %d\n", countspace);
+	return 0;
+}
+
+
+//YACC
+
+
+=STRING
+
+
+ab.lex:-
+%{
+#include "y.tab.h"
+%}
+%%
+a { return 'a'; }
+b { return 'b'; }
+\n { return '\n'; }
+. { return yytext[0]; }
+%%
+ab.y:-
+%{
+#include <stdio.h>
+%}
+%%
+S : A 'b' '\n' {printf("Accepted\n"); exit(0);}
+	;
+A : 'a' A
+	|
+	;
+%%
+int main()
+{
+	printf("Enter string: ");
+	yyparse();
+	return 0;
+}
+void yyerror()
+{
+	printf("Rejected\n");
+}
+
+
+=CALC
+
+
+lex code:-
+%{
+#include "y.tab.h"
+%}
+%%
+[0-9]+ { yylval = atoi(yytext); return NUMBER; }
+[ \t] ;
+\n return '\n';
+"+" return '+';
+"-" return '-';
+"*" return '*';
+"/" return '/';
+"(" return '(';
+")" return ')';
+"^" return '^';
+%%
+int yywrap()
+{
+	return 1;
+}
+yacc code:-
+%{
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+int yylex();
+void yyerror(char *s);
+%}
+%token NUMBER
+%left '+' '-'
+%left '*' '/'
+%right '^'
+%right UMINUS
+%%
+input
+	: /* empty */
+	| input line
+	;
+line
+	: '\n'
+	| E '\n' { printf("Result = %d\n", $1); }
+	;
+E:
+E '+' E { $$ = $1 + $3; }
+	| E '-' E { $$ = $1 - $3; }
+	| E '*' E { $$ = $1 * $3; }
+	| E '/' E { $$ = $1 / $3; }
+	| '(' E ')' { $$ = $2; }
+	| E '^' E {$$ = pow($1,$3);}
+	| '-' E %prec UMINUS { $$= -$2;}
+	| NUMBER { $$ = $1; }
+	;
+%%
+void yyerror(char *s)
+{
+	printf("Invalid expression\n");
+}
+int main()
+{
+	printf("Enter expressions:\n");
+	yyparse();
+	return 0;
+}
+
+
+=VALID
+
+
+LEX:-
+%{
+#include "y.tab.h"
+%}
+%%
+[0-9]+(\.[0-9]+)? { return NUMBER; }
+[ \t]+ ;
+\n { return 0; }
+. { return yytext[0]; }
+%%
+int yywrap()
+{
+	return 1;
+}
+YACC:-
+%{
+#include <stdio.h>
+#include <stdlib.h>
+int yylex(void);
+void yyerror(const char *s);
+%}
+%token NUMBER
+%left '+' '-'
+%left '*' '/'
+%left UMINUS
+%%
+expr
+	: expr '+' expr
+	| expr '-' expr
+	| expr '*' expr
+	| expr '/' expr
+	| '(' expr ')'
+	| '-' expr %prec UMINUS
+	| NUMBER
+	;
+%%
+int main()
+{
+	printf("Enter an arithmetic expression: ");
+	if (yyparse() == 0)
+		printf("Valid arithmetic expression\n");
+	else
+	printf("Invalid arithmetic expression\n");
+	return 0;
+}
+void yyerror(const char *s)
+{
+	printf("Syntax error\n");
+}
+
+
+// C-Program
+
+
+=PARSER
+
+
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+char *keywords[] = {
+	"int", "float", "char", "double", "if", "else",
+	"while", "for", "return", "break", "continue",
+	"void", "do", "switch", "case", "default",
+	"struct", "typedef", "long", "short"
+};
+
+int isKeyword(char *word)
+{
+	int i;
+
+	for (i = 0; i < 20; i++)
+	{
+		if (strcmp(word, keywords[i]) == 0)
+			return 1;
+	}
+
+	return 0;
+}
+
+int main()
+{
+	FILE *fp;
+	char ch, word[100];
+	int i;
+
+	fp = fopen("input.txt", "r");
+
+	if (fp == NULL)
+	{
+		printf("Cannot open file\n");
+		return 0;
+	}
+
+	while ((ch = fgetc(fp)) != EOF)
+	{
+		/* Ignore spaces */
+		if (isspace(ch))
+			continue;
+
+		/* Identifier or Keyword */
+		if (isalpha(ch) || ch == '_')
+		{
+			i = 0;
+			word[i++] = ch;
+
+			while (isalnum(ch = fgetc(fp)) || ch == '_')
+				word[i++] = ch;
+
+			word[i] = '\0';
+
+			if (isKeyword(word))
+				printf("Keyword : %s\n", word);
+			else
+			printf("Identifier : %s\n", word);
+
+			if (ch != EOF)
+				ungetc(ch, fp);
+		}
+
+		/* Number */
+		else if (isdigit(ch))
+		{
+			i = 0;
+			word[i++] = ch;
+
+			while (isdigit(ch = fgetc(fp)) || ch == '.')
+				word[i++] = ch;
+
+			word[i] = '\0';
+
+			printf("Number : %s\n", word);
+
+			if (ch != EOF)
+				ungetc(ch, fp);
+		}
+
+		/* String */
+		else if (ch == '"')
+		{
+			i = 0;
+			word[i++] = ch;
+
+			while ((ch = fgetc(fp)) != '"' && ch != EOF)
+				word[i++] = ch;
+
+			word[i++] = '"';
+			word[i] = '\0';
+
+			printf("String : %s\n", word);
+		}
+
+		/* Comment or division operator */
+		else if (ch == '/')
+		{
+			char next = fgetc(fp);
+
+			if (next == '/')
+			{
+				while ((ch = fgetc(fp)) != '\n' && ch != EOF);
+				printf("Comment : Single-line\n");
+			}
+			else if (next == '*')
+			{
+				while ((ch = fgetc(fp)) != EOF)
+				{
+					if (ch == '*' && (next = fgetc(fp)) == '/')
+						break;
+				}
+				printf("Comment : Multi-line\n");
+			}
+			else
+			{
+				printf("Operator : /\n");
+
+				if (next != EOF)
+					ungetc(next, fp);
+			}
+		}
+
+		/* Operators */
+		else if (strchr("+-*%=<>!&|", ch))
+		{
+			printf("Operator : %c\n", ch);
+		}
+
+		/* Special symbols */
+		else if (strchr("(){}[];,.:", ch))
+		{
+			printf("Symbol : %c\n", ch);
+		}
+
+		/* Invalid character */
+		else
+		{
+			printf("Invalid Token : %c\n", ch);
+		}
+	}
+
+	fclose(fp);
+	return 0;
+}
+
+
+=First&Follow
+
+
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+char p[20][20];
+char first[26][20], follow[26][20];
+int n;
+
+void add(char s[], char c)
+{
+	if (!strchr(s, c)) {
+		int l = strlen(s);
+		s[l] = c;
+		s[l + 1] = '\0';
+	}
+}
+
+void FIRST(char c, char s[])
+{
+	int i, j;
+	char temp[20];
+
+	if (!isupper(c)) {
+		add(s, c);
+		return;
+	}
+
+	for (i = 0; i < n; i++) {
+		if (p[i][0] == c) {
+			if (p[i][2] == '#')
+				add(s, '#');
+			else {
+				for (j = 2; p[i][j] != '\0'; j++) {
+					temp[0] = '\0';
+					FIRST(p[i][j], temp);
+
+					int k;
+					for (k = 0; temp[k]; k++)
+						if (temp[k] != '#')
+						add(s, temp[k]);
+
+					if (!strchr(temp, '#'))
+						break;
+
+					if (p[i][j + 1] == '\0')
+						add(s, '#');
+				}
+			}
+		}
+	}
+}
+
+void FOLLOW(char c)
+{
+	int i, j, k;
+	char temp[20];
+
+	if (c == p[0][0])
+		add(follow[c - 'A'], '$');
+
+	for (i = 0; i < n; i++) {
+		for (j = 2; p[i][j]; j++) {
+			if (p[i][j] == c) {
+				if (p[i][j + 1]) {
+					temp[0] = '\0';
+					FIRST(p[i][j + 1], temp);
+
+					for (k = 0; temp[k]; k++)
+						if (temp[k] != '#')
+						add(follow[c - 'A'], temp[k]);
+
+					if (strchr(temp, '#') && p[i][0] != c) {
+						FOLLOW(p[i][0]);
+
+						for (k = 0; follow[p[i][0] - 'A'][k]; k++)
+							add(follow[c - 'A'],
+						follow[p[i][0] - 'A'][k]);
+					}
+				}
+				else if (p[i][0] != c) {
+					FOLLOW(p[i][0]);
+
+					for (k = 0; follow[p[i][0] - 'A'][k]; k++)
+						add(follow[c - 'A'],
+					follow[p[i][0] - 'A'][k]);
+				}
+			}
+		}
+	}
+}
+
+int main()
+{
+	int i, j;
+
+	printf("Enter number of productions: ");
+	scanf("%d", &n);
+
+	printf("Enter productions (# for epsilon):\n");
+
+	for (i = 0; i < n; i++)
+		scanf("%s", p[i]);
+
+	printf("\nFIRST:\n");
+
+	for (i = 0; i < n; i++) {
+		if (i == 0 || p[i][0] != p[i - 1][0]) {
+			FIRST(p[i][0], first[p[i][0] - 'A']);
+
+			printf("FIRST(%c) = { ", p[i][0]);
+
+			for (j = 0; first[p[i][0] - 'A'][j]; j++)
+				printf("%c ", first[p[i][0] - 'A'][j]);
+
+			printf("}\n");
+		}
+	}
+
+	for (i = 0; i < n; i++)
+		FOLLOW(p[i][0]);
+
+	printf("\nFOLLOW:\n");
+
+	for (i = 0; i < n; i++) {
+		if (i == 0 || p[i][0] != p[i - 1][0]) {
+			printf("FOLLOW(%c) = { ", p[i][0]);
+
+			for (j = 0; follow[p[i][0] - 'A'][j]; j++)
+				printf("%c ", follow[p[i][0] - 'A'][j]);
+
+			printf("}\n");
+		}
+	}
+
+	return 0;
+}
+
+
+=e-Closure
+
+
+#include <stdio.h>
+
+int n, a[10][10], visited[10];
+
+void eclosure(int s)
+{
+	int i;
+
+	visited[s] = 1;
+	printf("q%d ", s);
+
+	for (i = 0; i < n; i++)
+	{
+		if (a[s][i] == 1 && visited[i] == 0)
+		{
+			eclosure(i);
+		}
+	}
+}
+
+int main()
+{
+	int i, j;
+
+	printf("Enter number of states: ");
+	scanf("%d", &n);
+
+	printf("Enter epsilon transition matrix:\n");
+	for (i = 0; i < n; i++)
+	{
+		for (j = 0; j < n; j++)
+		{
+			scanf("%d", &a[i][j]);
+		}
+	}
+
+	printf("\nEpsilon Closures:\n");
+
+	for (i = 0; i < n; i++)
+	{
+		for (j = 0; j < n; j++)
+		{
+			visited[j] = 0;
+		}
+
+		printf("E-closure(q%d) = { ", i);
+		eclosure(i);
+		printf("}\n");
+	}
+
+	return 0;
+}
+
+
+=eNFA-to-NFA
+
+
+CODE:-
+#include <stdio.h>
+#define MAX 20
+int main()
+{
+	int n, t;
+	int from[MAX], to[MAX];
+	char symbol[MAX];
+	int closure[MAX][MAX];
+	int i, j, k, x;
+	printf("Enter number of states: ");
+	scanf("%d", &n);
+	printf("Enter number of transitions: ");
+	scanf("%d", &t);
+	printf("\nEnter transitions (from to symbol):\n");
+	printf("Use 'e' for epsilon.\n");
+	for (i = 0; i < t; i++)
+	{
+		scanf("%d %d %c", &from[i], &to[i], &symbol[i]);
+	}
+
+	for (i = 0; i < n; i++)
+	{
+		for (j = 0; j < n; j++)
+			closure[i][j] = 0;
+		closure[i][i] = 1;
+	}
+	for (i = 0; i < t; i++)
+	{
+		if (symbol[i] == 'e')
+			closure[from[i]][to[i]] = 1;
+	}
+	for (k = 0; k < n; k++)
+	{
+		for (i = 0; i < n; i++)
+		{
+			for (j = 0; j < n; j++)
+			{
+				if (closure[i][k] && closure[k][j])
+					closure[i][j] = 1;
+			}
+		}
+	}
+	printf("\nEpsilon Closure:\n");
+	for (i = 0; i < n; i++)
+	{
+		printf("E-closure(q%d) = { ", i);
+		for (j = 0; j < n; j++)
+		{
+			if (closure[i][j])
+				printf("q%d ", j);
+		}
+		printf("}\n");
+	}
+
+	printf("\nNFA Transitions:\n");
+	for (i = 0; i < n; i++)
+	{
+		for (j = 0; j < n; j++)
+		{
+			if (closure[i][j])
+			{
+				for (k = 0; k < t; k++)
+				{
+					if (from[k] == j &&
+						symbol[k] != 'e')
+					{
+						printf("q%d --%c--> ", i, symbol[k]);
+
+						printf("{ ");
+						for (x = 0; x < n; x++)
+						{
+							if (closure[to[k]][x])
+								printf("q%d ", x);
+						}
+						printf("}\n");
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}
